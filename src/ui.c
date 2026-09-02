@@ -414,7 +414,58 @@ void houseReport(void)
  * keeps reporting changes, a rule is fighting itself: go back to house.c
  * [ 3 / 6 ] and find the `if` that has no `else`.
  */
+/* دالة مساعدة صغيرة: تحوّل بايت status لنص ثنائي زي "00010101"
+ * بنحتاجها هنا لأن snprintf مالهاش %b جاهزة زي printBinary(). */
+static void byteToBinaryStr(uint8_t value, char *out)
+{
+    int8_t bit;
+    uint8_t idx = 0U;
+
+    for (bit = 7; bit >= 0; bit--) {
+        out[idx] = READ_BIT(value, bit) ? '1' : '0';
+        idx++;
+    }
+    out[idx] = '\0';
+}
+
 void runAutomation(void)
 {
-    printf("  TODO runAutomation\n");
+    char trace[ROOM_COUNT][96];
+    uint8_t changed = 0U;
+    uint8_t i;
+
+    for (i = 0U; i < ROOM_COUNT; i++) {
+        Room_t *r = houseRoom(i);
+        uint8_t before = r->status;
+        uint16_t t = tempC(r->adc);
+
+        if (READ_BIT(before, BIT_AUTO) == 0U) {
+            /* الغرفة يدوية، سيبها متلمسهاش، وسجّل كده بس */
+            snprintf(trace[i], sizeof trace[i],
+                     "  %-9s %3u C   skipped (MANUAL)", r->name, t);
+        } else {
+            uint8_t did_change = applyRules(r);
+            char before_bin[9];
+            char after_bin[9];
+
+            byteToBinaryStr(before, before_bin);
+            byteToBinaryStr(r->status, after_bin);
+
+            changed = (uint8_t)(changed + did_change);
+
+            snprintf(trace[i], sizeof trace[i],
+                     "  %-9s %3u C   0b%s -> 0b%s%s",
+                     r->name, t, before_bin, after_bin,
+                     did_change ? "  *" : "");
+        }
+    }
+
+    printf("\n");
+    for (i = 0U; i < ROOM_COUNT; i++) {
+        printf("%s\n", trace[i]);
+    }
+
+    printf("\n  %u room(s) changed.\n", changed);
+
+    pauseKey();
 }
