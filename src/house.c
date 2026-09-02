@@ -179,8 +179,41 @@ uint16_t tempC(uint16_t adc)
  */
 uint8_t applyRules(Room_t *r)
 {
-    (void)r;        /* delete this line */
-    return 0U;      /* TODO */
+    uint8_t old_status = r->status;   /* نحفظها الأول عشان نقارن في الآخر */
+    uint16_t temp;
+
+    /* لو AUTO مطفي، سيب الغرفة زي ما هي تماماً ورجّع فوراً */
+    if (READ_BIT(r->status, BIT_AUTO) == 0U) {
+        return 0U;
+    }
+
+    temp = tempC(r->adc);   /* نحسبها مرة واحدة ونستخدمها في R2 و R3 */
+
+    /* R1 — اللمبة بتتبع وجود الناس */
+    if (READ_BIT(r->status, BIT_OCCUPIED) == 1U) {
+        SET_BIT(r->status, BIT_LAMP);
+    } else {
+        CLR_BIT(r->status, BIT_LAMP);
+    }
+
+    /* R2 — المروحة بتتبع الحرارة */
+    if (temp >= TEMP_HOT) {
+        SET_BIT(r->status, BIT_FAN);
+    } else {
+        CLR_BIT(r->status, BIT_FAN);
+    }
+
+    /* R3 — لازم تيجي أخيراً: السخونة الشديدة بتشغل الإنذار واللمبة،
+     * حتى لو الغرفة فاضية (بتكتب فوق نتيجة R1 بقصد) */
+    if (temp >= TEMP_ALARM) {
+        SET_BIT(r->status, BIT_ALARM);
+        SET_BIT(r->status, BIT_LAMP);
+    } else {
+        CLR_BIT(r->status, BIT_ALARM);
+    }
+
+    /* رجّع 1 لو فيه أي تغيير حصل، 0 لو مفيش */
+    return (r->status != old_status) ? 1U : 0U;
 }
 
 
@@ -205,7 +238,15 @@ uint8_t applyRules(Room_t *r)
  */
 uint8_t rulesPass(void)
 {
-    return 0U;      /* TODO */
+    uint8_t i;
+    uint8_t changed_count = 0U;
+
+    for (i = 0U; i < ROOM_COUNT; i++) {
+        /* houseRoom(i) بترجع مؤشر للغرفة، وapplyRules بترجع 1 لو اتغيرت */
+        changed_count += applyRules(houseRoom(i));
+    }
+
+    return changed_count;
 }
 
 
@@ -223,8 +264,17 @@ uint8_t rulesPass(void)
  */
 uint8_t countRoomsWith(uint8_t bit)
 {
-    (void)bit;      /* delete this line */
-    return 0U;      /* TODO */
+    uint8_t i;
+    uint8_t count = 0U;
+
+    for (i = 0U; i < ROOM_COUNT; i++) {
+        /* houseRoom(i) بيرجع مؤشر للغرفة، وREAD_BIT بيرجع 0 أو 1 بس */
+        if (READ_BIT(houseRoom(i)->status, bit) == 1U) {
+            count++;
+        }
+    }
+
+    return count;
 }
 
 
@@ -253,6 +303,13 @@ uint8_t countRoomsWith(uint8_t bit)
  */
 uint32_t sumAdc(const Room_t *rooms, uint8_t n)
 {
-    (void)rooms; (void)n;   /* delete this line */
-    return 0UL;             /* TODO */
+    /* حالة القاعدة أولاً ودايماً: لو معندناش غرف نجمعها، رجّع صفر.
+     * لازم تتفحص هنا وليس بعد الطرح، عشان n من نوع uint8_t
+     * (لو وصلنا هنا بقيمة صفر ونطرح واحد تاني، القيمة هتلف لـ 255). */
+    if (n == 0U) {
+        return 0UL;
+    }
+
+    /* خطوة الاستدعاء الذاتي: آخر عنصر + مجموع الباقي (بحجم أصغر بواحد) */
+    return (uint32_t)rooms[n - 1U].adc + sumAdc(rooms, n - 1U);
 }
