@@ -142,7 +142,24 @@ uint8_t pickRoom(void)
  */
 void setOccupancy(void)
 {
-    printf("  TODO setOccupancy\n");
+    uint8_t i = pickRoom();
+    Room_t *r;
+
+    if (i == 255U) {
+        return;
+    }
+
+    r = houseRoom(i);
+    TOGGLE_BIT(r->status, BIT_OCCUPIED);
+
+    if (READ_BIT(r->status, BIT_OCCUPIED) == 1U) {
+        statusSet(C_OK, "%s: someone walked in.", r->name);
+    } else {
+        statusSet(C_DIM, "%s: now empty.", r->name);
+    }
+
+    render((int)i);
+    pauseKey();
 }
 
 
