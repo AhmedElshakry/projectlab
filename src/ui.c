@@ -253,9 +253,52 @@ void setTemperature(void)
  */
 void switchDevice(void)
 {
-    printf("  TODO switchDevice\n");
-}
+    uint8_t i = pickRoom();
+    Room_t *r;
+    int choice;
 
+    if (i == 255U) {
+        return;
+    }
+
+    r = houseRoom(i);
+
+    printf("  Switch (1=Lamp 2=Fan 3=Auto mode): ");
+    fflush(stdout);
+
+    if (!readInt(&choice)) {
+        statusSet(C_ALARM, "Nothing switched.");
+        return;
+    }
+
+    switch (choice) {
+        case 1:
+            TOGGLE_BIT(r->status, BIT_LAMP);
+            CLR_BIT(r->status, BIT_AUTO);
+            statusSet(C_LAMP, "%s: lamp switched manually.", r->name);
+            break;
+        case 2:
+            TOGGLE_BIT(r->status, BIT_FAN);
+            CLR_BIT(r->status, BIT_AUTO);
+            statusSet(C_FAN, "%s: fan switched manually.", r->name);
+            break;
+        case 3:
+            TOGGLE_BIT(r->status, BIT_AUTO);
+            statusSet(C_AUTO, "%s: auto mode toggled.", r->name);
+            break;
+        default:
+            statusSet(C_ALARM, "Nothing switched.");
+            return;
+    }
+
+    render((int)i);
+
+    printf("  %s status = ", r->name);
+    printBinary(r->status);
+    printf("  (0x%02X)\n", r->status);
+
+    pauseKey();
+}
 
 /* ==========================================================================
  *  [ 4 / 5 ]   YOUR WORK HERE  —  houseReport()                      FR-11
