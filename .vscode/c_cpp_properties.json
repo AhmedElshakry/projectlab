@@ -1,0 +1,14 @@
+{
+    "version": 4,
+    "configurations": [
+        {
+            "name": "Smart Home Console",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/include"
+            ],
+            "cStandard": "c99",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ]
+}

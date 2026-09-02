@@ -1,0 +1,18 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "gcc",
+            "args": [
+                "-std=c99", "-Wall", "-Wextra", "-Iinclude",
+                "-o", "house.exe",
+                "main.c", "src/house.c", "src/render.c",
+                "src/ui.c", "src/platform.c", "src/demo.c"
+            ],
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": ["$gcc"]
+        }
+    ]
+}
