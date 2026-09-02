@@ -78,8 +78,27 @@ void houseInit(void)
     static const uint16_t SEED_ADC[ROOM_COUNT] = { 51U, 64U, 45U, 58U, 49U, 96U };
     static const uint8_t  SEED_OCC[ROOM_COUNT] = { 1U, 0U, 0U, 0U, 1U, 0U };
 
-    /* TODO: the loop described above. */
-    (void)NAMES; (void)SEED_ADC; (void)SEED_OCC;   /* delete these */
+    uint8_t i;
+
+    for (i = 0U; i < ROOM_COUNT; i++) {
+        uint8_t j = 0U;
+
+        /* نسخ الاسم حرف بحرف، مع وقف قبل NAME_LEN - 1 عشان نسيب مكان لـ '\0' */
+        while (NAMES[i][j] != '\0' && j < (NAME_LEN - 1U)) {
+            house[i].name[j] = NAMES[i][j];
+            j++;
+        }
+        house[i].name[j] = '\0';   /* التوقيف الآمن للسلسلة */
+
+        house[i].adc    = SEED_ADC[i];  /* قيمة ADC المبدئية من الجدول */
+        house[i].status = 0U;           /* تصفير كامل قبل استخدام أي macro */
+
+        SET_BIT(house[i].status, BIT_AUTO);  /* كل غرفة تبدأ AUTO */
+
+        if (SEED_OCC[i] == 1U) {
+            SET_BIT(house[i].status, BIT_OCCUPIED);  /* حسب جدول الإشغال */
+        }
+    }
 }
 
 
@@ -109,8 +128,15 @@ void houseInit(void)
  */
 uint16_t tempC(uint16_t adc)
 {
-    (void)adc;      /* delete this line */
-    return 0U;      /* TODO */
+    /* لازم نعمل cast لـ uint32_t قبل الضرب عشان نتفادى الـ overflow،
+     * لأن adc * 500 ممكن يتجاوز حدود uint16_t (مثال: 1023 * 500 = 511500) */
+    uint32_t scaled = (uint32_t)adc * 500UL;
+
+    /* اضرب الأول ثم اقسم — عكس الترتيب يرجّع صفر دايماً بسبب integer division */
+    uint32_t result = scaled / 1024UL;
+
+    /* النتيجة القصوى 499، مش هتتسع في uint8_t، فالإرجاع لازم uint16_t */
+    return (uint16_t)result;
 }
 
 
