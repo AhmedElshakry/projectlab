@@ -188,11 +188,37 @@ void setOccupancy(void)
  * straight into a uint16_t you can never detect a negative number — it has
  * already wrapped to 65532 and sailed through your range check.
  */
+
 void setTemperature(void)
 {
-    printf("  TODO setTemperature\n");
-}
+    uint8_t i = pickRoom();
+    Room_t *r;
+    int raw;
 
+    if (i == 255U) {
+        return;
+    }
+
+    r = houseRoom(i);
+
+    printf("  Raw ADC reading (0..1023): ");
+    fflush(stdout);
+
+    if (!readInt(&raw) || raw < 0 || raw > (int)ADC_MAX) {
+        /* رفض القيمة الغلط، ومنلمسش الـ adc القديم خالص */
+        statusSet(C_ALARM, "Bad ADC value, %s unchanged.", r->name);
+        render((int)i);
+        pauseKey();
+        return;
+    }
+
+    r->adc = (uint16_t)raw;   /* القيمة سليمة، نخزنها دلوقتي بس */
+
+    statusSet(C_OK, "%s: ADC %u -> %u C", r->name, r->adc, tempC(r->adc));
+
+    render((int)i);
+    pauseKey();
+}
 
 /* ==========================================================================
  *  [ 3 / 5 ]   YOUR WORK HERE  —  switchDevice()                     FR-07
