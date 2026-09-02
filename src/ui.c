@@ -330,7 +330,54 @@ void switchDevice(void)
  */
 void houseReport(void)
 {
-    printf("  TODO houseReport\n");
+    uint8_t i;
+    uint8_t hottest = 0U;
+    uint8_t coldest = 0U;
+    uint32_t total;
+    uint16_t avg;
+
+    render(-1);   /* المخطط التخطيطي فوق، من غير تظليل أي غرفة */
+
+    printf("\n  House report\n");
+
+    printf("  Lamps ON  ");
+    drawBar(countRoomsWith(BIT_LAMP), ROOM_COUNT, REPORT_BAR_W, C_LAMP);
+    printf("\n");
+
+    printf("  Fans  ON  ");
+    drawBar(countRoomsWith(BIT_FAN), ROOM_COUNT, REPORT_BAR_W, C_FAN);
+    printf("\n");
+
+    printf("  Occupied  ");
+    drawBar(countRoomsWith(BIT_OCCUPIED), ROOM_COUNT, REPORT_BAR_W, C_OK);
+    printf("\n");
+
+    printf("  Alarms    ");
+    drawBar(countRoomsWith(BIT_ALARM), ROOM_COUNT, REPORT_BAR_W, C_ALARM);
+    printf("\n");
+
+    /* لقاية أسخن وأبرد غرفة بمقارنة قيمة adc لكل الغرف بحلقة واحدة */
+    for (i = 1U; i < ROOM_COUNT; i++) {
+        if (houseRoom(i)->adc > houseRoom(hottest)->adc) {
+            hottest = i;
+        }
+        if (houseRoom(i)->adc < houseRoom(coldest)->adc) {
+            coldest = i;
+        }
+    }
+
+    printf("  Hottest: %s (%u C)\n",
+           houseRoom(hottest)->name, tempC(houseRoom(hottest)->adc));
+    printf("  Coldest: %s (%u C)\n",
+           houseRoom(coldest)->name, tempC(houseRoom(coldest)->adc));
+
+    /* المجموع الخام (recursive) والمتوسط */
+    total = sumAdc(houseRooms(), ROOM_COUNT);
+    avg   = tempC((uint16_t)(total / ROOM_COUNT));
+
+    printf("  Raw sum: %lu   Average: %u C\n", (unsigned long)total, avg);
+
+    pauseKey();
 }
 
 
